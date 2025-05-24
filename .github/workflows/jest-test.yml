@@ -7,6 +7,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: jest-test 
     steps:
       - name: Checkout merged PR code
         uses: actions/checkout@v4
@@ -21,8 +22,11 @@ jobs:
         with:
           version: '10.8.1'
 
+      - name: Remove lockfile
+        run: rm pnpm-lock.yaml
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Get public IP
         id: get_ip
@@ -43,14 +47,12 @@ jobs:
           ATLAS_PROJECT_ID: ${{ secrets.ATLAS_PROJECT_ID }}
       
       - name: 'Create env file'
+        working-directory: backend
         run: |
-          touch backend/.env
-          echo DB_URL=${{ secrets.DB_URL }} >> backend/.env
-          echo FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099" >> backend/.env
-          echo FIREBASE_EMULATOR_HOST="127.0.0.1:4000" >> backend/.env
-          echo GCLOUD_PROJECT="demo-test" >> backend/.env
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
+          touch .env
+          echo FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099" >> .env
+          echo FIREBASE_EMULATOR_HOST="127.0.0.1:4000" >> .env
+          echo GCLOUD_PROJECT="demo-test" >> .env
       
       - name: Install Firebase CLI
         working-directory: backend
@@ -65,6 +67,8 @@ jobs:
       - name: Run Jest tests
         working-directory: backend
         run: pnpm test
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
 
       - name: Remove IP from MongoDB Atlas Access List
         if: always()

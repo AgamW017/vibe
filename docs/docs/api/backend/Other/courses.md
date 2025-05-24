@@ -73,3 +73,7 @@
 ## Functions
 
 - [setupCoursesModuleDependencies](courses.setupCoursesModuleDependencies.md)
+
+## Functions
+
+- [setupCoursesModuleDependencies](courses.setupCoursesModuleDependencies.md)

@@ -30,9 +30,7 @@ import {
 } from 'shared/interfaces/quiz';
 import {SOLQuestion} from '../classes/transformers';
 import {CreateQuestionBody, SOLSolution} from '../classes/validators';
-import {dbConfig} from '../../../config/db';
 import request from 'supertest';
-import c from 'config';
 
 describe('Progress Controller Integration Tests', () => {
   const appInstance = Express();
