@@ -1,5 +1,5 @@
-import Sentry from '@sentry/node';
-import {nodeProfilingIntegration} from '@sentry/profiling-node';
+import Sentry from '@sentry/bun';
+//import {nodeProfilingIntegration} from '@sentry/profiling-node';
 import {sentryDSN} from './config/sentry';
 
 // Ensure to call this before importing any other modules!
@@ -8,7 +8,7 @@ if (process.env.NODE_ENV === 'production') {
     dsn: sentryDSN,
     integrations: [
       // Add our Profiling integration
-      nodeProfilingIntegration(),
+      //nodeProfilingIntegration(),
     ],
 
     // Add Tracing by setting tracesSampleRate
