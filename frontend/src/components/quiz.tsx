@@ -12,12 +12,36 @@ import { Clock, Trophy, ChevronLeft, ChevronRight, RotateCcw, GripVertical, Play
 import { useAttemptQuiz, type QuestionRenderView, useSubmitQuiz, type SubmitQuizResponse, useSaveQuiz, useStartItem, useStopItem } from '@/lib/api/hooks';
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useCourseStore } from "@/lib/store/course-store";
+import MathRenderer from "./math-renderer";
 
 // Utility function to convert buffer to hex string
 const bufferToHex = (buffer: number[]) => {
   return Array.from(new Uint8Array(buffer))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+};
+
+// Utility function to preprocess content for math rendering
+const preprocessMathContent = (content: string): string => {
+  if (!content) return content;
+  
+  let processedContent = content;
+  
+  // Ensure math expressions are properly formatted
+  // Convert \( \) to $ $ for inline math
+  processedContent = processedContent.replace(/\\\((.*?)\\\)/gs, '$$$1$$');
+  // Convert \[ \] to $$ $$ for display math
+  processedContent = processedContent.replace(/\\\[(.*?)\\\]/gs, '$$$$1$$$$');
+  
+  // Fix common LaTeX formatting issues
+  // Ensure proper escaping for backslashes in math contexts
+  processedContent = processedContent.replace(/\$\$(.*?)\$\$/gs, (_, mathContent) => {
+    // Clean up the math content - remove extra escaping that might interfere
+    const cleanMath = mathContent.replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim();
+    return `$$${cleanMath}$$`;
+  });
+  
+  return processedContent;
 };
 
 // Enhanced question types based on backend QuestionRenderView
@@ -179,7 +203,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
     const storedAttemptId = localStorage.getItem(`quiz-attempt-${processedQuizId}`);
     if (storedAttemptId) {
       setAttemptId(storedAttemptId);
-
       // Also restore saved answers if they exist
       const storedAnswers = localStorage.getItem(`quiz-answers-${processedQuizId}`);
       if (storedAnswers) {
@@ -248,7 +271,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
               }
             }
             break;
-
           case 'SELECT_MANY_IN_LOT':
             if (Array.isArray(userAnswer) && userAnswer.length > 0 && question.lotItems) {
               // Convert indices to lot item IDs
@@ -267,13 +289,11 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
               }).filter(id => !id.match(/^\d+$/)); // Filter out failed conversions (pure numbers)
             }
             break;
-
           case 'DESCRIPTIVE':
             if (typeof userAnswer === 'string' && userAnswer.trim().length > 0) {
               saveAnswer.answerText = userAnswer;
             }
             break;
-
           case 'NUMERIC_ANSWER_TYPE':
             if (typeof userAnswer === 'number' && !isNaN(userAnswer)) {
               saveAnswer.value = userAnswer;
@@ -416,7 +436,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
     try {
       // Convert answers to the format expected by the API
       const answersForSubmission = convertAnswersToSaveFormat();
-
       // Submit the quiz
       const response = await submitQuiz({
         params: { path: { quizId: processedQuizId, attemptId: attemptId } },
@@ -511,7 +530,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
       // Check if we already have an attempt ID stored
       let currentAttemptId = localStorage.getItem(`quiz-attempt-${processedQuizId}`);
       let questionsToUse = quizQuestions;
-
       if (!currentAttemptId) {
         // Call the API to create a new quiz attempt (only once)
         const response = await attemptQuiz({
@@ -521,7 +539,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
         currentAttemptId = response.attemptId;
         // Store attempt ID in localStorage
         localStorage.setItem(`quiz-attempt-${processedQuizId}`, currentAttemptId);
-
         // Convert backend questions to frontend format
         const convertedQuestions = convertBackendQuestions(response.questionRenderViews);
         setQuizQuestions(convertedQuestions);
@@ -562,12 +579,10 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
           questionsToUse = quizQuestions;
         }
       }
-
       setAttemptId(currentAttemptId);
       console.log('Quiz attempt started with ID:', currentAttemptId);
       setQuizStarted(true);
       setCurrentQuestionIndex(0);
-
       // Set timer for first question if available
       if (questionsToUse.length > 0 && questionsToUse[0]?.timeLimit) {
         setTimeLeft(questionsToUse[0].timeLimit);
@@ -588,7 +603,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
         [currentQuestion.id]: answer
       };
       setAnswers(newAnswers);
-
       // Save answers to localStorage
       localStorage.setItem(`quiz-answers-${processedQuizId}`, JSON.stringify(newAnswers));
     }
@@ -670,7 +684,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
           return question.options[answer] || 'Invalid selection';
         }
         return String(answer);
-
       case 'SELECT_MANY_IN_LOT':
         if (Array.isArray(answer) && question.options) {
           return (answer as number[]).map((index: number) => question.options?.[index] || 'Invalid').join(', ');
@@ -688,7 +701,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
           return answer.join(' → ');
         }
         return String(answer);
-
       default:
         return String(answer);
     }
@@ -748,7 +760,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                   Test your knowledge and track your progress. Take your time to read through the information below before starting.
                 </CardDescription>
               </div>
-
               <div className="flex flex-col items-center space-y-4 min-w-fit">
                 {deadline && quizType !== 'NO_DEADLINE' && (
                   <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20 min-w-[300px]">
@@ -779,14 +790,12 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                     Failed to start quiz. Please try again.
                   </div>
                 )}
-
                 <p className="text-sm text-muted-foreground text-center max-w-[300px]">
                   Make sure you have a stable internet connection and enough time to complete the quiz.
                 </p>
               </div>
             </div>
           </CardHeader>
-
           <CardContent className="space-y-8">
             {/* Key Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -815,7 +824,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                   <div className="text-sm text-muted-foreground">Pass Score</div>
                 </div>
               </Card>
-
               <Card className="text-center p-4 hover:shadow-md transition-shadow">
                 <div className="flex flex-col items-center space-y-2">
                   <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
@@ -825,7 +833,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                   <div className="text-sm text-muted-foreground">Max Attempts</div>
                 </div>
               </Card>
-
               <Card className="text-center p-4 hover:shadow-md transition-shadow">
                 <div className="flex flex-col items-center space-y-2">
                   <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
@@ -836,7 +843,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                 </div>
               </Card>
             </div>
-
 
           </CardContent>
         </Card>
@@ -884,7 +890,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                   {submissionResults.gradingStatus === 'PENDING' && '⏳ Pending Review'}
                 </Badge>
               )}
-
               {(submissionResults?.totalScore === submissionResults?.totalMaxScore) && (
                 <Badge variant="default" className="text-lg px-4 py-2 bg-gradient-to-r from-primary to-chart-2 text-primary-foreground">
                   Perfect Score! 🎉
@@ -901,7 +906,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
               {quizQuestions.map((question, index) => {
                 const userAnswer = answers[question.id];
                 const hasAnswer = userAnswer !== undefined && userAnswer !== null && userAnswer !== '';
-
                 // Find feedback for this question if available
                 const questionFeedback = submissionResults?.overallFeedback?.find(
                   feedback => feedback.questionId === question.id
@@ -951,7 +955,11 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                           }
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-2">{question.question}</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        <MathRenderer>
+                          {preprocessMathContent(question.question)}
+                        </MathRenderer>
+                      </p>
 
                       {/* Show user's answer if any */}
                       {hasAnswer && (
@@ -961,7 +969,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                           </p>
                         </div>
                       )}
-
                       {/* Show correct answers if enabled and available */}
                       {showCorrectAnswersAfterSubmission && questionFeedback && (
                         <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 rounded">
@@ -970,7 +977,6 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                           </p>
                         </div>
                       )}
-
                       {/* Show explanation if enabled and available */}
                       {showExplanationAfterSubmission && questionFeedback?.answerFeedback && (
                         <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/20 rounded">
@@ -1086,7 +1092,9 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
             </Badge>
           </div>
           <h2 className="text-2xl font-semibold leading-tight">
-            {currentQuestion.question}
+            <MathRenderer>
+              {preprocessMathContent(currentQuestion.question)}
+            </MathRenderer>
           </h2>
 
           {/* Hint section with reveal button */}
@@ -1105,7 +1113,7 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
               {showHint && (
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    <strong>Hint:</strong> {currentQuestion.hint}
+                    <strong>Hint:</strong> <MathRenderer>{preprocessMathContent(currentQuestion.hint)}</MathRenderer>
                   </p>
                 </div>
               )}
@@ -1126,7 +1134,11 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                   className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer w-full hover:bg-accent/50 transition-colors"
                 >
                   <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                  <span className="flex-1">{option}</span>
+                  <span className="flex-1">
+                    <MathRenderer>
+                      {preprocessMathContent(option)}
+                    </MathRenderer>
+                  </span>
                 </Label>
               ))}
             </RadioGroup>
@@ -1154,7 +1166,11 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                       }
                     }}
                   />
-                  <span className="flex-1">{option}</span>
+                  <span className="flex-1">
+                    <MathRenderer>
+                      {preprocessMathContent(option)}
+                    </MathRenderer>
+                  </span>
                 </Label>
               ))}
             </div>
@@ -1214,7 +1230,11 @@ const Quiz = forwardRef<QuizRef, QuizProps>(({
                     <Badge variant="outline" className="min-w-[40px] justify-center">
                       {index + 1}
                     </Badge>
-                    <span className="flex-1">{item}</span>
+                    <span className="flex-1">
+                      <MathRenderer>
+                        {preprocessMathContent(item)}
+                      </MathRenderer>
+                    </span>
                   </div>
                 ))}
               </div>
