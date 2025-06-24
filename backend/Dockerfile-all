@@ -31,6 +31,7 @@ RUN apk add --no-cache git bash \
 
 # Copy only production dependencies and compiled code
 COPY package.json ./
+COPY scripts/class-transformer-0.5.1.patch.js ./scripts
 COPY --from=builder /app/build ./build
 RUN pnpm install
 
